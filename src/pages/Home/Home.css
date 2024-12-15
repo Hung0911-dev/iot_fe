@@ -1,0 +1,6 @@
+.card:hover{
+    background-color:aliceblue;
+}
+.card {
+    cursor: pointer;
+}
