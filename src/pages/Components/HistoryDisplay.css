@@ -1,0 +1,38 @@
+.table-container {
+    max-height: 300px; /* Set the max height for the table container */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid rgba(0, 0, 0, 0.1); /* Optional: Add a border around the table */
+  }
+  
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .history-table th,
+  .history-table td {
+    text-align: left;
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+
+  }
+  
+  .history-table th {
+
+    position: sticky; 
+    top: 0; 
+    background-color: rgba(0, 123, 255, 0.8); 
+    color: white;
+    font-weight: bold;
+    z-index: 1; 
+  }
+  
+  .history-table tbody tr:nth-child(even) {
+    background-color: rgba(240, 240, 240, 0.5);
+  }
+  
+  .history-table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+  }
+  

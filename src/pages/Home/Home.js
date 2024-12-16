@@ -1,120 +1,173 @@
 import React, { useEffect, useState } from "react";
-import { Box, Grid, Typography, Card, CardContent, IconButton } from "@mui/material";
+import { Box, Grid, Typography, Card, CardContent, IconButton, BottomNavigationAction, BottomNavigation, Paper, styled  } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import BedIcon from "@mui/icons-material/Bed";
 import WeekendIcon from "@mui/icons-material/Weekend";
-import BathtubIcon from "@mui/icons-material/Bathtub";
-import KitchenIcon from "@mui/icons-material/Kitchen";
-import StoreIcon from "@mui/icons-material/Store";
-import SchoolIcon from "@mui/icons-material/School"
-import mqtt from 'mqtt';
-import "./Home.css"
-import { useNavigate } from "react-router-dom";
+import SecurityIcon from "@mui/icons-material/Security";
+import PieChartIcon from "@mui/icons-material/PieChart";
+import SettingsIcon from "@mui/icons-material/Settings";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import "./Home.css";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import Indoor from "../Components/Indoor";
 import socketService from "../../Functions/socketService";
+import RealTimeChart from "../Components/RealTimeChart";
+import HistoryDisplay from "../Components/HistoryDisplay";
+import { getHistoryData } from "../../api/IndoorAPI";
 const Home = () => {
-  const [message, setMessage] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [indoorData, setIndoorData] = useState([])
-  const navigate = useNavigate()
-    const rooms = [
-        { name: "Indoor", devices: 15, icon: <BedIcon fontSize="large" color="primary" /> },
-        { name: "Outdoor", devices: 12, icon: <WeekendIcon fontSize="large" color="success" /> },
-    ];
-    const topics = [
-      'Iot_InDoor/temperature',
-      'Iot_InDoor/humidity',
-      'Iot_InDoor/gas',
-      'Iot_InDoor/flame',
-      'Iot_InDoor/vibration',
-      'test-event'
+  const rooms = [
+    { name: "Indoor", devices: 15, icon: <BedIcon fontSize="large" color="primary" /> },
+    { name: "Outdoor", devices: 12, icon: <WeekendIcon fontSize="large" color="success" /> },
   ];
-    
-    useEffect(() => {
-      const brokerUrl = 'wss://877ab903f4a0407aa62686c3d962bb59.s1.eu.hivemq.cloud:8884/mqtt';
- 
-      const options = {
-        clientId: `testClient_${Math.random().toString(16).slice(3)}`,
-        clean: false,  
-        connectTimeout: 20000,
-        username: 'Hung091103',
-        password: 'Hung091103',
-      };
-    
-      const client = mqtt.connect(brokerUrl, options);
-    
-      client.on('connect', () => {
-        console.log('Connected to HiveMQ Cloud.');
-        setIsConnected(true); 
-    
-        const topic = 'Iot_InDoor';
-        client.subscribe(topic, { qos: 1 }, (err) => {
-          if (err) {
-            console.error('Subscription error:', err);
+  const [historyData, setHistoryData] = useState([])
+  const indoorTopics = [
+    "Iot_InDoor/temperature",
+    "Iot_InDoor/humidity",
+    "Iot_InDoor/gas",
+    "Iot_InDoor/flame",
+    "Iot_InDoor/vibration",
+  ];
+
+  const outdoorTopics = [
+    "Iot_OutDoor/temperature",
+    "Iot_OutDoor/humidity",
+    "Iot_OutDoor/gas",
+    "Iot_OutDoor/airQuality",
+  ];
+
+  const [sensorData, setSensorData] = useState([]);
+  const [currentTab, setCurrentTab] = useState("Indoor");
+  const [alerts, setAlerts] = useState([]);
+  
+  const handleSocketConnection = (topics) => {
+    socketService.disconnect();
+
+    socketService.connect("675aac3c5a5c76cac0e428c9");
+    topics.forEach((topic) => {
+      socketService.on(topic, (message) => {
+        setSensorData((prevData) => {
+          const updatedData = [...prevData];
+          const index = updatedData.findIndex((sensor) => sensor.sensorType === message.sensorType);
+
+          if (index !== -1) {
+            updatedData[index] = { ...updatedData[index], value: message.value };
           } else {
-            console.log(`Subscribed to topic: ${topic}`);
+            updatedData.push({ sensorType: message.sensorType, value: message.value });
           }
+          if (message.sensorType === "flame" && message.value === 1) {
+            setAlerts((prevAlerts) => [...prevAlerts.slice(-4), "Flame detected! Please check immediately."]);
+          }
+          if (message.sensorType === "vibration" && message.value === 1) {
+            setAlerts((prevAlerts) => [...prevAlerts.slice(-4), "Vibration detected! Possible intruder alert."]);
+          }
+          return updatedData;
         });
       });
-    
-      client.on('message', (topic, message) => {
-        console.log(`Received message from topic "${topic}":`, JSON.parse(message.toString( )));
-        setIndoorData(JSON.parse(message.toString()))
-        setMessage(message);
-      });
-    
-      client.on('error', (err) => {
-        console.error('Connection error:', err);
-      });
-  
-      client.on('close', () => {
-        console.log('Disconnected from HiveMQ Cloud.');
-        setIsConnected(false);
-      });
-  
-      client.on('reconnect', () => {
-        console.log('Reconnecting...');
-      });
-
-      return () => {
-        client.end(); 
-       
-      };
-    }, []);
-  
-      return (
-        <Box sx={{ maxWidth: "1200px", margin: "0 auto", padding: "20px" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-            <Typography variant="h4" fontWeight="bold">
-              My Home
-            </Typography>
-            <IconButton>
-              <HomeIcon />
-            </IconButton>
-          </Box>
-    
-          <Card sx={{ mb: 3, padding: "16px", background: "linear-gradient(to right, #7b1fa2, #512da8)", color: "#fff" }}>
-            <Typography variant="h5">All Devices</Typography>
-            <Typography variant="body1">45 devices</Typography>
-          </Card>
-    
-          <Grid container spacing={3}>
-            {rooms.map((room, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index} onClick={() => navigate('/indoor', {state: indoorData})}>
-                <Card sx={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "16px" }} className="card">
-                  {room.icon}
-                  <CardContent>
-                    <Typography variant="h6" align="center">
-                      {room.name}
-                    </Typography>
-                    <Typography variant="body2" align="center">
-                      {room.devices} devices
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+    });
+  };
+  useEffect(() => {
+    const topics = currentTab === "Indoor" ? indoorTopics : outdoorTopics;
+    handleSocketConnection(topics);
+    return () => {
+      const allTopics = [...indoorTopics, ...outdoorTopics];
+      allTopics.forEach((topic) => socketService.off(topic));
+    };
+  }, [currentTab]);
+  const [value, setValue] = useState(0);
+  const CustomBottomNavigation = styled(BottomNavigation)(({ theme }) => ({
+    backgroundColor: "red", 
+    borderRadius: "20px",
+    height: "60px",
+  }));
+  return (
+    <Box className="background">
+      <Box className="tab-bar">
+        <IconButton className="tab-icon active">
+          <HomeIcon />
+        </IconButton>
+        <IconButton className="tab-icon">
+          <SecurityIcon />
+        </IconButton>
+        <IconButton className="tab-icon">
+          <PieChartIcon />
+        </IconButton>
+        <IconButton className="tab-icon">
+          <SettingsIcon />
+        </IconButton>
+        <IconButton className="tab-icon power">
+          <PowerSettingsNewIcon />
+        </IconButton>
+      </Box>
+      <Box sx={{ maxWidth: "1200px", margin: "6% auto 0 auto", padding: "20px", backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", borderRadius: "50px" } }>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+          <Typography variant="h4" fontWeight="bold" color="#fff">
+            My Home
+          </Typography>
+          <IconButton>
+            <HomeIcon sx={{ color: "#fff" }} />
+          </IconButton>
         </Box>
-      );
-}
+        <div className="container">
+          <div className="left-container">
+            <Indoor sensorData={sensorData}/>
+            <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)"}}>
+              <RealTimeChart sensorData={sensorData}/>
+            </Card>
+          </div>
+          <div className="right-container">
+            <div className="right-container-up">
+            <Typography variant="h6" color="error" gutterBottom>
+                Alerts:
+              </Typography>
+              {alerts.length > 0 ? (
+                alerts.map((alert, index) => (
+                  <Typography key={index} variant="body1" color="error">
+                     {new Date().toLocaleString()} {alert}
+                  </Typography>
+                ))
+              ) : (
+                <Typography variant="body2" color="success">
+                  No alerts currently.
+                </Typography>
+              )}
+            </div>
+            <div className="right-container-down">
+              <HistoryDisplay historyData={historyData}/>
+            </div>
+          </div>
+        </div>
+
+      </Box>
+      {/* <Paper elevation={3} className="bottom-nav-container">
+        <CustomBottomNavigation
+          value={value}
+          onChange={(event, newValue) => setValue(newValue)}
+          showLabels
+          sx={{
+            backgroundColor: "rgba(255, 254, 254, 0.7)",
+            borderRadius: "20px",
+            height: "60px",
+          }}
+          className="bottom-nav"
+        >
+          <BottomNavigationAction
+            label="Indoor"
+            icon={<HomeIcon />}
+            className={`nav-item ${value === 0 ? "active" : ""}`}
+          />
+          <BottomNavigationAction
+            label="Outdoor"
+            icon={<WeekendIcon />}
+            className={`nav-item ${value === 1 ? "active" : ""}`}
+          />
+          <BottomNavigationAction
+            icon={<AddCircleOutlineIcon />}
+            className="nav-item add-button"
+          />
+        </CustomBottomNavigation>
+      </Paper> */}
+    </Box>
+  );
+};
+
 export default Home;

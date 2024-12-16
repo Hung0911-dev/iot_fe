@@ -2,10 +2,12 @@ import { Card, Typography, Grid, Box, Tabs, Tab } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { styled } from '@mui/system';
-import socketService from '../../Functions/socketService';
+import mqtt from 'mqtt';
 
+import socketService from '../../Functions/socketService';
+import { getHistoryData } from '../../api/IndoorAPI';
 const Indoor = () => {
-    const [sensorData, setSensorData] = useState()
+    const [sensorData, setSensorData] = useState([])
     const location = useLocation()
     const [currentTab, setCurrentTab] = useState(0);
     const topics = [
@@ -16,26 +18,42 @@ const Indoor = () => {
       'Iot_InDoor/vibration',
       'test-event'
   ];
-    const handleSocketMessage = (topic) => {
-            socketService.on(topic, (message) => {
-            console.log("Notification received:", message);
-            setSensorData((prevData) => {
-              // Find the corresponding sensor in the current state
-              const updatedData = prevData.map((sensor) => {
+  const handleGetHistoryData = async () => {
+    const response = await getHistoryData()
+  }
+  const handleSocketMessage = async (topic) => {
+    socketService.on(topic, (message) => {
+        setSensorData((prevData) => {
+            if (!Array.isArray(prevData)) {
+                return [];
+            }
+
+            const updatedData = prevData.map((sensor) => {
                 if (sensor.sensorType === message.sensorType) {
-                  return { ...sensor, value: message.value };
+                    return { ...sensor, value: message.value };
                 }
                 return sensor;
-              });
-              return updatedData;
             });
-          })
-        }
+
+            const isExistingSensor = updatedData.some((sensor) => sensor.sensorType === message.sensorType);
+            if (!isExistingSensor) {
+                updatedData.push({
+                    sensorType: message.sensorType,
+                    value: message.value,
+                    icon: message.icon || '', 
+                });
+            }
+
+
+            return updatedData;
+        });
+    });
+};
     useEffect(() => {
         const state = location.state
         setSensorData(state)
-        topics.map((topic) => {
-          handleSocketMessage(topic)
+        topics.map(async (topic) => {
+          await handleSocketMessage(topic)
         })
         return () => {
           topics.map((topic) => {
