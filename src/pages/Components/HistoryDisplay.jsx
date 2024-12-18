@@ -16,7 +16,7 @@ const HistoryDisplay = () => {
       }, [])
     return (
         <>
-            <Typography variant="h6"  gutterBottom>
+            {/* <Typography variant="h6"  gutterBottom>
                 History Data:
             </Typography>
         <div className="table-container">
@@ -50,7 +50,7 @@ const HistoryDisplay = () => {
                 )}
             </tbody>
             </table>
-        </div>
+        </div> */}
         </>
     )
 }
