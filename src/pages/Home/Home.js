@@ -176,7 +176,7 @@ const Home = () => {
           <PowerSettingsNewIcon />
         </IconButton>
       </Box>
-      <Box sx={{ maxWidth: "1200px", margin: "6% auto 0 auto", padding: "20px", backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", borderRadius: "50px" } }>
+      <Box sx={{ maxWidth: "1200px", margin: "6% auto 0 auto", padding: "20px", backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", borderRadius: "50px", height: "800px" } }>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
           <Typography variant="h4" fontWeight="bold" color="#fff">
             My Home

@@ -9,6 +9,10 @@ export const controllBuzzer = async (userId, command) => {
     return response.data
 }
 export const getDataForHistory = async (date, page) => {
-    const response = await axios.post(`http://localhost:8000/api/indoor/getHistoryData?page=${page}`, {date})
+    const response = await axios.post(`http://localhost:8000/api/indoor/getIndoorHistoryData?page=${page}`, {date})
+    return response.data
+}
+export const getTableHistoryData = async (date, page) => {
+    const response = await axios.post(`http://localhost:8000/api/indoor/getTableHistoryData?page=${page}`, {date})
     return response.data
 }
