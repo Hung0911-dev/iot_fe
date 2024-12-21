@@ -4,6 +4,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import BedIcon from "@mui/icons-material/Bed";
 import WeekendIcon from "@mui/icons-material/Weekend";
 import SecurityIcon from "@mui/icons-material/Security";
+import YardIcon from '@mui/icons-material/Yard';
 import PieChartIcon from "@mui/icons-material/PieChart";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
@@ -16,6 +17,8 @@ import RealTimeChart from "../Components/RealTimeChart";
 import HistoryDisplay from "../Components/HistoryDisplay";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { controllBuzzer, getHistoryData } from "../../api/IndoorAPI";
+import Outdoor from "../Components/Outdoor";
+import RealTimeChartOutdoor from "../Components/RealTimeChartOutdoor";
 const Home = () => {
   const rooms = [
     { name: "Indoor", devices: 15, icon: <BedIcon fontSize="large" color="primary" /> },
@@ -35,12 +38,11 @@ const Home = () => {
 
   const outdoorTopics = [
     "Iot_OutDoor/temperature",
-    "Iot_OutDoor/humidity",
-    "Iot_OutDoor/gas",
-    "Iot_OutDoor/airQuality",
-    "Iot_OutDoor/alert"
+            "Iot_OutDoor/humidity",
+            "Iot_OutDoor/air",
+            "Iot_OutDoor/motion"
   ];
-
+  const [selectedTab, setSelectedTab] = useState("indoor")
   const [sensorData, setSensorData] = useState([]);
   const [currentTab, setCurrentTab] = useState("Indoor");
   const [alerts, setAlerts] = useState([]);
@@ -90,13 +92,13 @@ const Home = () => {
   //   turnon()
   // }, [])
   useEffect(() => {
-    const topics = currentTab === "Indoor" ? indoorTopics : outdoorTopics;
+    const topics = selectedTab === "indoor" ? indoorTopics : outdoorTopics;
     handleSocketConnection(topics);
     return () => {
       const allTopics = [...indoorTopics, ...outdoorTopics];
       allTopics.forEach((topic) => socketService.off(topic));
     };
-  }, [currentTab]);
+  }, [selectedTab]);
   const [value, setValue] = useState(0);
   const CustomBottomNavigation = styled(BottomNavigation)(({ theme }) => ({
     backgroundColor: "red", 
@@ -160,11 +162,15 @@ const Home = () => {
       </DialogActions>
     </Dialog>
       <Box className="tab-bar">
-        <IconButton className="tab-icon active">
+        <IconButton className={`tab-icon ${selectedTab === 'indoor' && 'active'}`} onClick={() => {
+          setSelectedTab('indoor')
+        }}>
           <HomeIcon />
         </IconButton>
-        <IconButton className="tab-icon">
-          <SecurityIcon />
+        <IconButton className={`tab-icon ${selectedTab === 'indoor' && 'active'}`} onClick={() => {
+          setSelectedTab('outdoor')
+        }}>
+          <YardIcon/>
         </IconButton>
         <IconButton className="tab-icon">
           <PieChartIcon />
@@ -186,28 +192,48 @@ const Home = () => {
           </IconButton>
         </Box>
         <div className="container">
-          <div className="left-container">
+          {
+            selectedTab === "indoor" ? (
+              <div className="left-container">
             <Indoor sensorData={sensorData}/>
             <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)"}}>
-              <RealTimeChart sensorData={sensorData}/>
+              <RealTimeChart sensorData={sensorData} type={selectedTab}/>
             </Card>
           </div>
+            ) : (
+              <div className="left-container">
+                <Outdoor sensorData={sensorData}/>
+                <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)"}}>
+                  <RealTimeChartOutdoor sensorData={sensorData} type={selectedTab}/>
+                </Card>
+          </div>
+            )
+          }
           <div className="right-container">
             <div className="right-container-up">
-            <Typography variant="h6" color="error" gutterBottom>
-                Alerts:
-              </Typography>
-              {alerts.length > 0 ? (
-                alerts.map((alert, index) => (
-                  <Typography key={index} variant="body1" color="error">
-                     {new Date().toLocaleString()} {alert}
-                  </Typography>
-                ))
-              ) : (
-                <Typography variant="body2" color="success">
-                  No alerts currently.
+            {selectedTab === 'indoor' ? (
+              <>
+                <Typography variant="h6" color="error" gutterBottom>
+                  Alerts:
                 </Typography>
-              )}
+                {alerts.map((alert, index) => (
+                  <Typography key={index} variant="body1" color="error">
+                    {new Date().toLocaleString()} {alert}
+                  </Typography>
+                ))}
+              </>
+            ) : (
+              <>
+                <Typography variant="h6" color="error" gutterBottom>
+                  Alerts:
+                </Typography>
+                {alerts.map((alert, index) => (
+                  <Typography key={index} variant="body1" color="error">
+                    {new Date().toLocaleString()} {alert}
+                  </Typography>
+                ))}
+              </>
+            )}
             </div>
             <div className="right-container-down">
               <HistoryDisplay /> 

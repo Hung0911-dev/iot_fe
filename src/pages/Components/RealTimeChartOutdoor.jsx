@@ -5,7 +5,7 @@ import { MenuItem, Select, FormControl, InputLabel, TextField, Button } from "@m
 import { getHistoryData } from "../../api/IndoorAPI";
 import "./RealTimeChart.css"
 import { getOutdoorHistoryData } from "../../api/outdoorAPI";
-const RealTimeChart = ({ sensorData, type }) => {
+const RealTimeChartOutdoor = ({ sensorData, type }) => {
   const chartRef = useRef(null);
   const [timeRange, setTimeRange] = useState("present"); 
   const [selectedDate, setSelectedDate] = useState("");
@@ -28,7 +28,7 @@ const RealTimeChart = ({ sensorData, type }) => {
         borderWidth: 2,
       },
       {
-        label: "Gas",
+        label: "Air Quality",
         data: [],
         borderColor: "#FFCE56",
         backgroundColor: "rgba(255, 206, 86, 0.2)",
@@ -49,9 +49,9 @@ const RealTimeChart = ({ sensorData, type }) => {
           ...prevChartData.datasets[1].data,
           sensorData.find((s) => s.sensorType === "humidity")?.value || 0,
         ];
-        const newGasData = [
+        const newAirData = [
           ...prevChartData.datasets[2].data,
-          sensorData.find((s) => s.sensorType === "gas")?.value || 0,
+          sensorData.find((s) => s.sensorType === "air")?.value || 0,
         ];
 
         return {
@@ -60,7 +60,7 @@ const RealTimeChart = ({ sensorData, type }) => {
           datasets: [
             { ...prevChartData.datasets[0], data: newTemperatureData.slice(-20) },
             { ...prevChartData.datasets[1], data: newHumidityData.slice(-20) },
-            { ...prevChartData.datasets[2], data: newGasData.slice(-20) },
+            { ...prevChartData.datasets[2], data: newAirData.slice(-20) },
           ],
         };
       });
@@ -69,14 +69,13 @@ const RealTimeChart = ({ sensorData, type }) => {
   const handleFetchData = async () => {
     if (timeRange !== "present" && selectedDate) {
       try {
-        if(type === 'indoor'){
-          const response = await getHistoryData(selectedDate);
+        const response = await getOutdoorHistoryData(selectedDate, null);
         console.log("Backend Response:", response);
-  
+
         let newLabels = [];
         let temperatureData = [];
         let humidityData = [];
-        let gasData = [];
+        let airData = [];
   
         if (timeRange === "day") {
           newLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
@@ -84,10 +83,9 @@ const RealTimeChart = ({ sensorData, type }) => {
           newLabels.forEach((label, hour) => {
             const hourData = response.find((d) => parseInt(d.time, 10) === hour);
             console.log(hourData)
-
-            temperatureData.push(hourData?.temperature || 0);
-            humidityData.push(hourData?.humidity || 0);
-            gasData.push(hourData?.gas || 0);
+            temperatureData.push(hourData?.avgTemperature || 0);
+            humidityData.push(hourData?.avgHumidity || 0);
+            airData.push(hourData?.avgAirQuality || 0);
           });
         } else if (timeRange === "month") {
           const daysInMonth = new Date(selectedDate.split("-")[0], selectedDate.split("-")[1], 0).getDate();
@@ -101,18 +99,18 @@ const RealTimeChart = ({ sensorData, type }) => {
   
           newLabels.forEach((label, day) => {
             const dayData = response.find((d) => parseInt(d.time, 10) === day + 1);
-            temperatureData.push(dayData?.temperature || 0);
-            humidityData.push(dayData?.humidity || 0);
-            gasData.push(dayData?.gas || 0);
+            temperatureData.push(dayData?.avgTemperature || 0);
+            humidityData.push(dayData?.avgHumidity || 0);
+            airData.push(dayData?.avgAirQuality || 0);
           });
         } else if (timeRange === "year") {
           newLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   
           newLabels.forEach((label, month) => {
             const monthData = response.find((d) => parseInt(d.time, 10) === month + 1);
-            temperatureData.push(monthData?.temperature || 0);
-            humidityData.push(monthData?.humidity || 0);
-            gasData.push(monthData?.gas || 0);
+            temperatureData.push(monthData?.avgTemperature || 0);
+            humidityData.push(monthData?.avgHumidity || 0);
+            airData.push(monthData?.avgAirQuality || 0);
           });
         }
   
@@ -121,10 +119,10 @@ const RealTimeChart = ({ sensorData, type }) => {
           datasets: [
             { ...chartData.datasets[0], data: temperatureData },
             { ...chartData.datasets[1], data: humidityData },
-            { ...chartData.datasets[2], data: gasData },
+            { ...chartData.datasets[2], data: airData },
           ],
         });
-      }
+        
       } catch (error) {
         console.error("Error fetching historical data:", error);
       }
@@ -218,4 +216,4 @@ const RealTimeChart = ({ sensorData, type }) => {
   );
 };
 
-export default RealTimeChart;
+export default RealTimeChartOutdoor;

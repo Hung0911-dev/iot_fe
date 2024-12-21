@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import { Box, Card, CardContent, Typography,Grid, Switch } from "@mui/material";
-import "./Indoor.css"
+import "./Outdoor.css"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDroplet, faFireFlameSimple, faTemperatureThreeQuarters } from '@fortawesome/free-solid-svg-icons';
-const Indoor = ({ sensorData }) => {
+const Outdoor = ({ sensorData }) => {
 
     useEffect(() => {
       console.log(sensorData)
@@ -16,7 +16,7 @@ const Indoor = ({ sensorData }) => {
       {sensorData.length > 0 ? (
         <Grid container spacing={20} justifyContent="center">
           {sensorData.map((sensor, index) => (
-            sensor.sensorType !== "vibration" && sensor.sensorType !== "flame" && sensor.sensorType !== "air" && sensor.sensorType !== "motion" && (
+            sensor.sensorType !== "vibration" && sensor.sensorType !== "flame" && sensor.sensorType !== "motion" && sensor.sensorType !== "gas" && (
                 <Grid item xs={6} sm={3} key={index}>
                     <Card
                         sx={{
@@ -86,4 +86,4 @@ const Indoor = ({ sensorData }) => {
   );
 };
 
-export default Indoor;
+export default Outdoor;
