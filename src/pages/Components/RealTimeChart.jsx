@@ -133,7 +133,7 @@ const RealTimeChart = ({ sensorData, type }) => {
   
   return (
     <div style={{ width: "90%", margin: "auto" }}>
-      <h2>Real-Time Sensor Data</h2>
+      <h2>Real-Time Indoor Data</h2>
       <div className="head-selection">
         <FormControl variant="outlined" sx={{ mb: 2, minWidth: 150, backgroundColor: "#ffffff", borderRadius: "8px"}}>
           <InputLabel>Time Range</InputLabel>

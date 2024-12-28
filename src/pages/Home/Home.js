@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Grid, Typography, Card, CardContent, IconButton, BottomNavigationAction, BottomNavigation, Paper, styled, Dialog, DialogTitle, DialogContent, DialogActions, Button  } from "@mui/material";
+import { Box, Grid, Typography, Card, CardContent, IconButton, BottomNavigationAction, BottomNavigation, Paper, styled, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch  } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import BedIcon from "@mui/icons-material/Bed";
 import WeekendIcon from "@mui/icons-material/Weekend";
@@ -9,6 +9,8 @@ import PieChartIcon from "@mui/icons-material/PieChart";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import "./Home.css";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import Indoor from "../Components/Indoor";
@@ -19,6 +21,9 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { controllBuzzer, getHistoryData } from "../../api/IndoorAPI";
 import Outdoor from "../Components/Outdoor";
 import RealTimeChartOutdoor from "../Components/RealTimeChartOutdoor";
+import HistoryOutdoorDisplay from "../Components/HistoryOutdoorDisplay";
+import { toggleLight } from "../../api/outdoorAPI";
+import HistoryInteract from "../Components/HistoryInteract";
 const Home = () => {
   const rooms = [
     { name: "Indoor", devices: 15, icon: <BedIcon fontSize="large" color="primary" /> },
@@ -26,6 +31,7 @@ const Home = () => {
   ];
   const [popUp, setPopUp] = useState(true)
   const [popUpMessage, setPopUpMessage] = useState("Flame detected! Please check immediately.")
+  const [lightOn, setLightOn] = useState(false)
   const [historyData, setHistoryData] = useState([])
   const indoorTopics = [
     "Iot_InDoor/temperature",
@@ -33,14 +39,14 @@ const Home = () => {
     "Iot_InDoor/gas",
     "Iot_InDoor/flame",
     "Iot_InDoor/vibration",
-    "Iot_InDoor/alert"
   ];
 
   const outdoorTopics = [
     "Iot_OutDoor/temperature",
             "Iot_OutDoor/humidity",
             "Iot_OutDoor/air",
-            "Iot_OutDoor/motion"
+            "Iot_OutDoor/motion",
+            "Iot_OutDoor/Led_Control"
   ];
   const [selectedTab, setSelectedTab] = useState("indoor")
   const [sensorData, setSensorData] = useState([]);
@@ -56,6 +62,17 @@ const Home = () => {
   const closePopup = async () => {
     setPopUp(false);
     await controllBuzzer("675aac3c5a5c76cac0e428c9", 'off')
+  };
+  const handleToggle = async (event) => {
+    setLightOn(event.target.checked); 
+    if(event.target.checked){
+      const response =await toggleLight("675aac3c5a5c76cac0e428c9", "ON")
+      console.log(response)
+    } else {
+      const response = await toggleLight("675aac3c5a5c76cac0e428c9", "OFF")
+      console.log(response)
+
+    }
   };
   const handleSocketConnection = (topics) => {
     socketService.disconnect();
@@ -80,17 +97,15 @@ const Home = () => {
             setAlerts((prevAlerts) => [...prevAlerts.slice(-4), "Vibration detected! Possible intruder alert."]);
             triggerAlert("Vibration detected! Possible intruder alert.")
           }
+          if(message.sensorType === "motion" && message.value === 1){
+            setAlerts((prevAlerts) => [...prevAlerts.slice(-4), "Motion detected! Possible unauthorized activity in the monitored area."]);
+            triggerAlert("Motion detected! Possible unauthorized activity in the monitored area.")
+          }
           return updatedData;
         });
       });
     });
   };
-  // useEffect(() => {
-  //   const turnon = async () => {
-  //     await controllBuzzer('675aac3c5a5c76cac0e428c9', 'on')
-  //   }
-  //   turnon()
-  // }, [])
   useEffect(() => {
     const topics = selectedTab === "indoor" ? indoorTopics : outdoorTopics;
     handleSocketConnection(topics);
@@ -104,7 +119,7 @@ const Home = () => {
     backgroundColor: "red", 
     borderRadius: "20px",
     height: "60px",
-  }));
+  }));  
   return (
     <Box className="background">
       <Dialog
@@ -172,7 +187,9 @@ const Home = () => {
         }}>
           <YardIcon/>
         </IconButton>
-        <IconButton className="tab-icon">
+        <IconButton className="tab-icon" onClick={() => {
+          setSelectedTab('interact')
+        }}>
           <PieChartIcon />
         </IconButton>
         <IconButton className="tab-icon">
@@ -182,8 +199,17 @@ const Home = () => {
           <PowerSettingsNewIcon />
         </IconButton>
       </Box>
-      <Box sx={{ maxWidth: "1200px", margin: "6% auto 0 auto", padding: "20px", backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", borderRadius: "50px", height: "800px" } }>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+      <Box sx={{ maxWidth: "1300px", margin: "6% auto 0 auto", padding: "20px", backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", borderRadius: "50px", height: "720px" } }>
+        {
+          selectedTab === 'interact' ? (
+            <div>
+              <div>
+                <HistoryInteract/>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
           <Typography variant="h4" fontWeight="bold" color="#fff">
             My Home
           </Typography>
@@ -196,80 +222,140 @@ const Home = () => {
             selectedTab === "indoor" ? (
               <div className="left-container">
             <Indoor sensorData={sensorData}/>
-            <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)"}}>
+            <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", height: "490px"}}>
               <RealTimeChart sensorData={sensorData} type={selectedTab}/>
             </Card>
           </div>
             ) : (
               <div className="left-container">
                 <Outdoor sensorData={sensorData}/>
-                <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)"}}>
+                <Card sx={{marginTop: '20px', borderRadius: '16px', backgroundColor: "rgba(255, 254, 254, 0.2)", backdropFilter: "blur(5px)", height: "490px"}}>
                   <RealTimeChartOutdoor sensorData={sensorData} type={selectedTab}/>
                 </Card>
           </div>
             )
           }
           <div className="right-container">
-            <div className="right-container-up">
-            {selectedTab === 'indoor' ? (
-              <>
-                <Typography variant="h6" color="error" gutterBottom>
-                  Alerts:
-                </Typography>
-                {alerts.map((alert, index) => (
-                  <Typography key={index} variant="body1" color="error">
-                    {new Date().toLocaleString()} {alert}
-                  </Typography>
-                ))}
-              </>
+           {
+            selectedTab === 'outdoor' ? (
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+              }}>
+              <div className="right-container-up" style={{
+                width: '60%',
+                height: '200px',
+                overflowY: 'scroll'
+              }}>
+                <>
+                    <Typography variant="h6" color="error" gutterBottom>
+                      Alerts:
+                    </Typography>
+                    {alerts.map((alert, index) => (
+                      <Typography key={index} variant="body1" color="error">
+                        {new Date().toLocaleString()} {alert}
+                      </Typography>
+                    ))}
+                  </>
+              </div>
+              <Card
+          sx={{
+            marginBottom: "20px",
+            borderRadius: "16px",
+            backgroundColor: lightOn ? "#c4f053" : "#ddd",
+            padding: "20px",
+            boxShadow: lightOn ? "0px 4px 12px rgba(196, 240, 83, 0.6)" : "0px 4px 8px rgba(0, 0, 0, 0.2)",
+            color: "#000",
+            height: "190px",
+            width: '23%',
+            position: "relative",
+            overflow: "hidden",
+            transition: "background-color 0.5s ease, box-shadow 0.5s ease",
+          }}
+        >
+          <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100px",
+          animation: lightOn ? "fadeIn 0.5s ease-in-out" : "fadeOut 0.5s ease-in-out",
+        }}
+      >
+        {lightOn ? (
+          <LightbulbIcon
+            sx={{
+              fontSize: "64px",
+              color: "#ffeb3b",
+              animation: "glow 1.5s infinite alternate",
+            }}
+          />
+        ) : (
+          <LightbulbOutlinedIcon
+            sx={{
+              fontSize: "64px",
+              color: "#555",
+            }}
+          />
+        )}
+      </Box>
+      <Typography variant="h6" fontWeight="bold" textAlign="center" sx={{ marginBottom: "8px" }}>
+        {lightOn ? "Light On" : "Light Off"}
+      </Typography>
+      <Typography variant="body2" textAlign="center" sx={{ marginBottom: "16px", color: "#333" }}>
+        Toggle the light
+      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        <Switch
+          checked={lightOn}
+          onChange={handleToggle}
+          color="primary"
+          sx={{
+            "& .MuiSwitch-thumb": {
+              backgroundColor: lightOn ? "#ffeb3b" : "#555",
+            },
+            "& .MuiSwitch-track": {
+              backgroundColor: lightOn ? "#c4f053" : "#ddd",
+            },
+          }}
+        />
+      </Box>
+        </Card>
+              </div>
             ) : (
-              <>
-                <Typography variant="h6" color="error" gutterBottom>
-                  Alerts:
-                </Typography>
-                {alerts.map((alert, index) => (
-                  <Typography key={index} variant="body1" color="error">
-                    {new Date().toLocaleString()} {alert}
-                  </Typography>
-                ))}
-              </>
-            )}
-            </div>
+              <div className="right-container-up" style={{
+                height: '200px',
+                overflowY: 'scroll'
+              }}>
+                <>
+                    <Typography variant="h6" color="error" gutterBottom>
+                      Alerts:
+                    </Typography>
+                    {alerts.map((alert, index) => (
+                      <Typography key={index} variant="body1" color="error">
+                        {new Date().toLocaleString()} {alert}
+                      </Typography>
+                    ))}
+                  </>
+              </div>
+            )
+           }
             <div className="right-container-down">
-              <HistoryDisplay /> 
+              {
+                selectedTab === 'indoor' ? (
+                  <HistoryDisplay /> 
+                ) : (
+                  <HistoryOutdoorDisplay/>
+                )
+              }
             </div>
           </div>
         </div>
+            </>
+          )
+        }
 
       </Box>
-      {/* <Paper elevation={3} className="bottom-nav-container">
-        <CustomBottomNavigation
-          value={value}
-          onChange={(event, newValue) => setValue(newValue)}
-          showLabels
-          sx={{
-            backgroundColor: "rgba(255, 254, 254, 0.7)",
-            borderRadius: "20px",
-            height: "60px",
-          }}
-          className="bottom-nav"
-        >
-          <BottomNavigationAction
-            label="Indoor"
-            icon={<HomeIcon />}
-            className={`nav-item ${value === 0 ? "active" : ""}`}
-          />
-          <BottomNavigationAction
-            label="Outdoor"
-            icon={<WeekendIcon />}
-            className={`nav-item ${value === 1 ? "active" : ""}`}
-          />
-          <BottomNavigationAction
-            icon={<AddCircleOutlineIcon />}
-            className="nav-item add-button"
-          />
-        </CustomBottomNavigation>
-      </Paper> */}
     </Box>
   );
 };

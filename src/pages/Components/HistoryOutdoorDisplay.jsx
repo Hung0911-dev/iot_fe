@@ -1,22 +1,22 @@
 import { Button, Card, CardContent, FormControl, InputLabel, MenuItem, Select, TextField, Typography, Pagination, Stack } from "@mui/material";
 import "./HistoryDisplay.css"
 import { useEffect, useState } from "react";
-import { getHistoryData, getTableHistoryData } from "../../api/IndoorAPI";
-const HistoryDisplay = () => {
+import { getTableHistoryData } from "../../api/outdoorAPI";
+const HistoryOutdoorDisplay = () => {
     const [historyData, setHistoryData] = useState([])
     const [timeRange, setTimeRange] = useState("today"); 
     const [selectedDate, setSelectedDate] = useState("");
     const [historyDataToShow, setHistoryDataToShow] = useState([])
     const [page, setPage] = useState(1)
+    const [totalPage, setTotalPage] = useState(1)
+    const limit = 3;
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0'); 
     const dd = String(today.getDate()).padStart(2, '0');
-    const limit = 3;
-    const [totalPage, setTotalPage] = useState(1)
+    
     const formattedDate = `${yyyy}-${mm}-${dd}`;
     const handleGetHistoryData = async (date) => {
-        
         const response = await getTableHistoryData(date, page)
         const countPage = Math.ceil(response.length / limit)
         const startIndex = (page - 1) * limit;
@@ -26,19 +26,22 @@ const HistoryDisplay = () => {
         setTotalPage(countPage)
         setHistoryData(response)
       }
-      useEffect(() => {
+    useEffect(() => {
+      if(timeRange === "today"){
         handleGetHistoryData(formattedDate)
-    }, [page])
+      }
+    }, [timeRange]) 
     const handleFetchData = async () => {
+      console.log(selectedDate)
         if (timeRange !== "today" && selectedDate) {
           try {
             const response = await getTableHistoryData(selectedDate, page);
             console.log(response)
             setHistoryData(response)
             let newLabels = [];
-        let temperatureData = [];
-        let humidityData = [];
-        let gasData = [];
+            let temperatureData = [];
+            let humidityData = [];
+            let gasData = [];
   
         if (timeRange === "day") {
           newLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
@@ -75,6 +78,7 @@ const HistoryDisplay = () => {
             gasData.push(monthData?.gas || 0);
           });
         }
+  
           } catch (error) {
             console.error("Error fetching historical data:", error);
           }
@@ -86,6 +90,7 @@ const HistoryDisplay = () => {
         const slicedResponse = historyData.slice(startIndex, endIndex);
         setHistoryDataToShow(slicedResponse)
         setPage(value);
+
       };
     return (
         <>
@@ -100,7 +105,7 @@ const HistoryDisplay = () => {
           </Select>
         </FormControl>
 
-        {timeRange !== "today" && (
+      {timeRange !== "today" && (
         <div>
           <TextField
             type={timeRange === "day" ? "date" : timeRange === "month" ? "month" : "number"}
@@ -116,7 +121,7 @@ const HistoryDisplay = () => {
         Fetch Data
       </Button>
       </div>
-            <div style={{
+      <div style={{
               display: "flex",
               justifyContent: "space-between",
 
@@ -141,13 +146,12 @@ const HistoryDisplay = () => {
                 <div className="table-container">
             <table className="history-table">
             <thead>
-                <tr>
+                <tr className="history-thead">
                 <th>Timestamp</th>
                 <th>Temperature (°C)</th>
                 <th>Humidity (%)</th>
-                <th>Gas (ppm)</th>
-                <th>Vibration</th>
-                <th>Flame</th>
+                <th>Air Quality (ppm)</th>
+                <th>Motion</th>
                 </tr>
             </thead>
             <tbody>
@@ -157,9 +161,8 @@ const HistoryDisplay = () => {
                     <td>{data.createdAt}</td>
                     <td>{data.avgTemperature || '-'}</td>
                     <td>{data.avgHumidity || '-'}</td>
-                    <td>{data.avgGas || '-'}</td>
-                    <td>{data.flameCount > 1 ? data.flameCount : 'No'}</td>
-                    <td>{data.vibrationCount > 1 ? data.flameCount : 'No'}</td>
+                    <td>{data.avgAirQuality || '-'}</td>
+                    <td>{data.motionDetectCount > 0 ? "Yes" : "No"}</td>
                     </tr>
                 ))
 
@@ -172,4 +175,4 @@ const HistoryDisplay = () => {
         </>
     )
 }
-export default HistoryDisplay;
+export default HistoryOutdoorDisplay;
